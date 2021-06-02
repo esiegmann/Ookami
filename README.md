@@ -5,8 +5,8 @@ The Ookami HPE (formerly Cray) Apollo 80 system has 174 A64FX compute nodes each
 
 To facilitate users exploring current computer technologies and contrasting performance and programmability with the A64FX, Ookami also includes:
 
-1 node with dual socket AMD Rome (128 cores) with 512 Gbyte memory
-2 nodes with dual socket Thunder X2 (64 cores) each with 256 Gbyte memory and 2 NVIDIA V100 GPU
-Intel Sky Lake Processors (32 cores) with 192 Gbyte memory
+- 1 node with dual socket AMD Rome (128 cores) with 512 Gbyte memory
+- 2 nodes with dual socket Thunder X2 (64 cores) each with 256 Gbyte memory and 2 NVIDIA V100 GPU
+- Intel Sky Lake Processors (32 cores) with 192 Gbyte memory
 
 This repositiry collects small test programms and results from Ookami.
