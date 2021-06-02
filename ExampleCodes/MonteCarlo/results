@@ -1,0 +1,90 @@
+
+
+---------------------- A64FX @ 1.8 GHz --------------------------
+compiler        exp     mc0      mc1      mc2      mc3       mc4
+--------       -----   -----    -----    -----    -----     -----
+armclang++     
+20.3            6.0    350.4    327.4    261.5     18.0     11.5
+
+arm-g++        31.8    375.8    382.7    367.8    129.7      7.63
+9.3.0    
+
+g++
+10.2.0         31.3    376.4    385.4    368.5    129.7      7.65
+10.2.1-git(1)  31.8    377.9    386.9    369.3    130.3      8.37
+10.2.1-git(2)  31.8    377.9    386.9    369.4    130.2      7.62
+
+CC Cray
+10.0.1          4.2    398.4    395.5    251.0     33.6     28.2
+
+
+---  X86 Skylake Gold 6154 CPU @ 3.7GHz with boost (3.0 base) ---
+compiler        exp     mc0      mc1      mc2      mc3       mc4
+--------       -----   -----    -----    -----    -----     -----
+icpc
+19.1.2.254      1.6     46.5     46.6     36.2      4.65     4.50
+
+
+notes
+
+papi
+   * papi_get_real_cyc on A64FX seems to use a fixed clock of 0.1GHz so the returned
+     value was scaled by 18 to the actual frequency of 1.8GHz
+
+description
+   * results are cycles/iteration --- lower is better
+   * exp --- vector loop computing exponential function
+   * mc0 --- non-vectorizable Monte Carlo algorithm
+   * mc1 --- mc0 refactored to work on vectors but still not vectorizable due to use of drand()
+   * mc2 --- mc1 with drand() split into separate loop so should be able to vectorize loop computing exp()
+   * mc3 --- mc2 with vectorized random number generator
+   * mc4 --- mc3 with call to library/hand-written vectorized exp function
+
+g++ 10.2.1-git(1)&(2)
+   * exptest does not vectorize exp() in loop
+   * mc2 and mc3 no loops vectorized for above reason
+   * mc4 main loop vectorized
+   * mc4 --- it's the -msve-vector-bits=512 flag that makes the code slower between (1) and (2)
+
+armclang++ 20.3
+   * exptest vectorizes exp() in loop
+   * -mllvm -force-vector-width=8 ... produces slightly slower code for mc4
+   * -msve-vector-bits=512 has no impact on mc4 performance
+   * mc2, mc3, and mc4 main loop vectorized
+
+arm-g++ 9.3.0
+   * Does not support SVE intrinsics
+   * Does not vectorize exp
+
+CC 10.0.1 (Cray PE)
+   * exptest vectorizes exp() in loop
+   * mc2, mc3, and mc4 main loop vectorized
+   * preferred_vector_width=512 had no performance impact
+
+icpc 19.1.2.254
+   * vexp used MKL vdExp with default precision
+
+
+compiler flags
+
+g++ 10.2.1-git(1)
+   -Ofast -ffast-math -Wall -mtune=a64fx -mcpu=a64fx  -march=armv8.2-a+sve -msve-vector-bits=512 --param aarch64-autovec-preference=2 -fopt-info-vec -fopt-info-vec-missed
+
+g++ 10.2.1-git(2)
+   -Ofast -ffast-math -Wall -mtune=a64fx -mcpu=a64fx  -march=armv8.2-a+sve -fopt-info-vec -fopt-info-vec-missed
+
+g++ 10.2.0
+   -Ofast -ffast-math -Wall -mtune=native -mcpu=native  -march=armv8.2-a+sve -fopt-info-vec -fopt-info-vec-missed
+
+armclang++ 20.3
+   -Ofast -ffp-contract=fast -ffast-math -Wall  -Rpass=loop-vectorize -Rpass-missed=loop-vectorize -Rpass-analysis=loop-vectorize -march=armv8.2-a+sve -I. -std=c++17 -armpl=sve -mcpu=a64fx -mtune=a64fx
+
+arm-g++ 9.3.0
+   -Ofast -ffast-math -Wall -mtune=native -mcpu=native  -march=armv8.2-a+sve -fopt-info-vec -fopt-info-vec-missed
+
+CC 10.0.1
+   -O3 -h aggress,flex_mp=tolerant,msgs,negmsgs,vector3
+
+icpc 19.1.2.254
+   -xHOST -O3 -ipo -qopt-report=5 -qopt-report-phase=vec -mkl=sequential -qopt-zmm-usage=high
+   
